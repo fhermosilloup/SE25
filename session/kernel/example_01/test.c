@@ -6,7 +6,7 @@
 /* Función que se ejecuta cuando se instala el driver con insmod */
 static int __init my_driver_init(void)
 {
-        printk(KERN_INFO "Hello world from kernel space!");
+        printk(KERN_INFO "Hello world from kernel space!\n");
         return 0;
 }
 
