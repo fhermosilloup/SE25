@@ -8,7 +8,7 @@
 #define BUTTON_READ _IOR('a',3,int)
 
 int main() {
-    int fd = open("/dev/led_button_ioctl", O_RDWR);
+    int fd = open("/dev/ledbutton", O_RDWR);
     int val;
 
     ioctl(fd, LED_ON);
