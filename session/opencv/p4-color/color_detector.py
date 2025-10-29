@@ -1,3 +1,8 @@
+# Instalar Opencv en python
+# 1. En consola/terminal ejecutar
+# pip install opencv-python
+# pip install opencv-contrib-python
+
 # cap = cv2.VideoCapture(2)
 # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
