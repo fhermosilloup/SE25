@@ -1,3 +1,19 @@
+# 1. Crear enviroment
+#python3 -m venv --system-site-packages ENVIROMENT_NAME
+# 2. Activar enviroment
+#source ENVIROMENT_NAME/bin/activate
+
+# 3. Reactivar enviroment [Si cerramos terminal]
+# cd ENVIROMENT_NAME
+# source /bin/activate
+
+# 4. Instalar paquetes
+# pip install opencv-python opencv-contrib-python
+# pip install ultralytics ncnn
+
+# 5. Descargar modelo de YOLO en la carpeta de nuestro programa
+# https://github.com/ultralytics/yolov5
+# https://github.com/ultralytics/ultralytics
 import cv2
 from ultralytics import YOLO
 
