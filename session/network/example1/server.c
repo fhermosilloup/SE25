@@ -1,63 +1,85 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>     // memset, strlen
-#include <unistd.h>     // close, read, write
-#include <arpa/inet.h>  // sockaddr_in, inet_addr, htons
+#include "bcm2xxx_delay.h"
+#include "bcm2xxx_hal_gpio.h"
+#include <time.h>
+#include "socketPi.h"
 
-#define PORT 5000       // Puerto TCP donde escuchará el servidor
-#define BUFFER_SIZE 1024
+// Define here the server IP address
+#define SERVER_IP "192.168.1.11"
+// Define here the server port
+#define SERVER_PORT 16000
 
-int main() {
-    int server_fd, new_socket;             // Descriptores de socket
-    struct sockaddr_in address;             // Estructura que define IP y puerto
-    int addrlen = sizeof(address);          // Tamaño de la estructura
-    char buffer[BUFFER_SIZE] = {0};         // Buffer para recibir datos
-
-    // Crear socket TCP
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);  
-    if (server_fd == 0) {
-        perror("socket failed");  // Imprime error si no se puede crear
-        exit(EXIT_FAILURE);
-    }
-
-    // Configurar dirección del servidor
-    address.sin_family = AF_INET;          // Familia IPv4
-    address.sin_addr.s_addr = INADDR_ANY;  // Escucha en todas las interfaces
-    address.sin_port = htons(PORT);        // Puerto en formato network byte order
-
-    // Vincular socket a IP y puerto
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Escuchar conexiones entrantes (máx 3 en cola)
-    if (listen(server_fd, 3) < 0) {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-    printf("Servidor TCP escuchando en el puerto %d...\n", PORT);
-
-    // Aceptar conexión entrante
-    new_socket = accept(server_fd, (struct sockaddr *)&address,
-                        (socklen_t*)&addrlen);
-    if (new_socket < 0) {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
-    printf("Conexión aceptada\n");
-
-    // Recibir datos del cliente
-    int valread = read(new_socket, buffer, BUFFER_SIZE);
-    printf("Recibido: %s\n", buffer);
-
-    // Enviar respuesta al cliente
-    char *message = "Hola desde Raspberry Pi!";
-    send(new_socket, message, strlen(message), 0);
-
-    // 8. Cerrar sockets
-    close(new_socket);
-    close(server_fd);
-
-    return 0;
+int main()
+{
+	/* USER CODE BEGIN -----------------------------------------------*/
+	
+	// *****************************
+	// Peripheral Configuration
+	// *****************************
+	
+	// *****************************
+	// Networking Initialization
+	// *****************************
+	/* Create a TCP server */
+	SocketPiHandler_t hServerSocket = SocketPi(AF_INET, SOCK_STREAM, 0);
+	if(hServerSocket == NULL)
+	{
+		puts("Error creating socket");
+		return -1;
+	}
+	
+	if(SocketPi_Bind(hServerSocket,SERVER_IP,SERVER_PORT) != 0)
+	{
+		puts("Error Bind Address");
+		SocketPi_Close(hServerSocket);
+		return -1;
+	}
+	SocketPi_Listen(hServerSocket,10);
+	
+	char ip_client[30];
+	int port_client;
+	if(SocketPi_Accept(hServerSocket, ip_client, &port_client) != 0)
+	{
+		puts("Error Accepting Client");
+		SocketPi_Close(hServerSocket);
+		return -1;
+	}
+	
+	// *****************************
+	// Main program
+	// *****************************
+	// Server sends time when client requests
+	time_t tick;
+	char str[100];
+	while(1)
+	{
+		char rxmsg[1024];
+		int rxlen = 0;
+		if((rxlen = SocketPi_Receive(hServerSocket, rxmsg,1024,SOCKETPI_NO_TIMEOUT)) < 0)
+		{
+			puts("Receive failed");
+			break;
+		}
+		rxmsg[rxlen] = '\0';
+ 		printf("Client: %s\n", rxmsg);
+ 		
+ 		if(strcmp(rxmsg,"time")==0)
+ 		{
+			time(&tick);
+			snprintf(str,100,"%s",ctime(&tick));
+			size_t slen = strlen(str);
+			if(SocketPi_Send(hServerSocket,str,slen) < 0)
+			{
+				puts("Send failed");
+				break;
+			}
+		}
+	}
+	
+	// Close the socket
+	SocketPi_Close(hServerSocket);
+	
+	/* USER CODE END -------------------------------------------------*/
+    
+	/* EXIT */
+	return 0;
 }
