@@ -62,12 +62,11 @@ class TemperatureDisplay(ttk.Frame):
 
         self.scale = scale
 
-        # main digits (numDigs)
+        # main digits (2)
         self.NumDigits = numDigs
         self.digitsInt = [SevenSegmentDisplay(row, scale=scale) for _ in range(numDigs)]
         for d in self.digitsInt:
             d.pack(side="left", padx=1)
-          
         # decimal dot
         dot_size = int(10 * scale)
         dot_h = int(80 * scale)
@@ -75,7 +74,7 @@ class TemperatureDisplay(ttk.Frame):
         self.dot_id = self.dot.create_oval(2, int(dot_h*0.75), dot_size-2, int(dot_h*0.9), fill="#300000", outline="")
         self.dot.pack(side="left", padx=1)
         
-        # Decimal (numDec)
+        # Decimal
         self.NumDecimals = numDec
         self.digitsDec = [SevenSegmentDisplay(row, scale=scale) for _ in range(numDec)]
         for d in self.digitsDec:
@@ -101,6 +100,7 @@ class TemperatureDisplay(ttk.Frame):
         digits = list(int_part)
         decimalChar = list(dec_part)
         
+        #digits = [c for c in formatted if c != '.']
         while len(digits) < self.NumDigits:
             digits.insert(0, ' ')
         while len(decimalChar) < self.NumDecimals:
@@ -133,6 +133,7 @@ class MetalKnob(tk.Canvas):
         self.bind("<Button-1>", self._press)
         self.bind("<MouseWheel>", self._wheel)
         self.dragging = False
+        self.lastValue = -initial
 
     def _draw_body(self):
         c = self.diameter/2
@@ -196,7 +197,9 @@ class MetalKnob(tk.Canvas):
         self.value = val
         self._draw_pointer()
         if self.command:
-            self.command(val)
+            if self.lastValue != self.value:
+                self.command(val)
+        self.lastValue = val
 
 
 # -----------------------------
@@ -212,17 +215,24 @@ class PIDInterface(tk.Tk):
         self.setpoint = 25.0
         self.measured = 24.8
         
-        # ----- CREAR SOCKET AQUI -----
+        self.maxtemp = 99.9
+        self.mintemp = 0.0
+        
+        # ----- CREAR SOCKET AQUI ---------------------------------------
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(5)
         try:
-            self.sock.connect(("192.168.0.10", 5000))
+            self.sock.connect(("127.0.0.1", 5000))  # 127.0.0.1: IP local
             print("Conectado al servidor.")
+            self.sock.settimeout(None)
         except Exception as e:
             print("Error al conectar:", e)
             self.sock = None
+        
+        
         # -------------------------------------------------------------
         
-        # CREAR THREAD DE RECEPCION
+        # CREAR THREAD DE RECEPCION -----------------------------------------------
         if self.sock:
             threading.Thread(target=self.receive_temperature, daemon=True).start()
         # -------------------------------------------------------------------------
@@ -252,8 +262,11 @@ class PIDInterface(tk.Tk):
 
     def update_loop(self):
         # Read Measured temperature value
-        #self.measured += 0.1*(self.setpoint - self.measured) + random.uniform(-0.05, 0.05)
-        #self.measured = round(self.measured, 1)
+        if not self.sock:
+            self.measured += 0.1*(self.setpoint - self.measured) + random.uniform(-0.05, 0.05)
+            self.measured = round(self.measured, 1)
+            self.measured = min(self.maxtemp,self.measured)
+            self.measured = max(self.mintemp, self.measured)
         
         # Draw
         self.sp_disp.set_value(self.setpoint)
