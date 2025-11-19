@@ -1,5 +1,3 @@
-#include "bcm2xxx_delay.h"
-#include "bcm2xxx_hal_gpio.h"
 #include "socketPi.h"
 
 // Define here the server IP address
