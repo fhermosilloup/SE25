@@ -1,5 +1,3 @@
-#include "bcm2xxx_delay.h"
-#include "bcm2xxx_hal_gpio.h"
 #include <time.h>
 #include "socketPi.h"
 
